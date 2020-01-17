@@ -54,6 +54,12 @@ base = np.zeros((bg_h, bg_w, bg_c), dtype='uint8')
 x_offset = 1786
 y_offset = 650
 
+padding = 30
+
+# B G R
+color = (255, 0, 0)
+stroke = 2
+
 cap = cv2.VideoCapture(0)
 
 while True:
@@ -66,27 +72,25 @@ while True:
     for(x, y, w, h) in faces:
         base = cv2.cvtColor(base, cv2.COLOR_BGR2BGRA)
         print(x, y, w, h)
-        roi_gray = grayFrame[y:y+h, x:x+w]
-        roi_color = frame[y:y+h, x:x+w]
+        end_cord_x = x + w
+        end_cord_y = y + h
+        roi_gray = grayFrame[y - padding: end_cord_y + padding, x: end_cord_x]
+        roi_color = frame[y - padding: end_cord_y + padding, x: end_cord_x]
 
         print(roi_color.shape)
         print(base.shape)
 
-        #save image on disk
-        #img_item = "my-image.png"
-        #cv2.imwrite(img_item, roi_gray)
+        # save image on disk
+        # img_item = "my-image.png"
+        # cv2.imwrite(img_item, roi_gray)
 
-        color = (255, 0, 0) #BGR
-        stroke = 2
-        end_cord_x = x + w
-        end_cord_y = y + h
         cv2.rectangle(frame, (x, y), (end_cord_x, end_cord_y), color, stroke)
         base[y_offset:y_offset + roi_color.shape[0], x_offset:x_offset + roi_color.shape[1]] = roi_color
 
     base = cv2.cvtColor(base, cv2.COLOR_BGRA2BGR)
     output = overlay_transparent(base, background, 0, 0, (bg_w, bg_h))
     resize_output = cv2.resize(output, (int(output.shape[1] / 2), int(output.shape[0] / 2)))
-    #cv2.imshow("frame", frame)
+    # cv2.imshow("frame", frame)
     cv2.imshow('image', resize_output)
 
     if cv2.waitKey(1) & 0xFF == ord('q'):
