@@ -77,18 +77,16 @@ blue_color = (255, 0, 0)
 red_color = (0, 0, 255)
 stroke = 2
 
-cap = cv2.VideoCapture(0)
-
-''' SAVERIO (USAVA CAM ESTERNA)
 cap = cv2.VideoCapture()
-cap.open(2 + cv2.CAP_DSHOW)
+cap.open(0)
 cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1080)
 cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1920)
 #cap.set(cv2.CAP_PROP_FPS, 5)
 cap.set(cv2.CAP_PROP_AUTOFOCUS, 0)
 focus = 10
 cap.set(28, focus)
-'''
+
+print("VideoCapture open with frame ", cap.get(cv2.CAP_PROP_FRAME_WIDTH), "x", cap.get(cv2.CAP_PROP_FRAME_WIDTH))
 
 while True:
 
@@ -101,7 +99,7 @@ while True:
     grayFrame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
     frame = cv2.cvtColor(frame, cv2.COLOR_BGR2BGRA)
-    frame2 = cv2.resize(frame, (background.shape[1], background.shape[0] * scale))
+    frame2 = cv2.resize(frame, (background.shape[1], (int)(background.shape[0] * scale)))
     grayFrame2 = cv2.cvtColor(frame2, cv2.COLOR_BGR2GRAY)
     faces = face_cascade.detectMultiScale(grayFrame2, scaleFactor=1.3, minNeighbors=5, minSize=(50, 50),
                                           flags=cv2.CASCADE_SCALE_IMAGE)
@@ -138,8 +136,8 @@ while True:
         cv2.rectangle(frame2, (x, y), (x + w, y + h), blue_color, stroke)
         cv2.rectangle(frame2, (start_cord_x, start_cord_y), (end_cord_x, end_cord_y), red_color, stroke)
 
-        roy_color_center_x = start_cord_x + roi_gray.shape[1] / 2
-        roy_color_center_y = start_cord_y + roi_gray.shape[0] / 2
+        roy_color_center_x = (int)(start_cord_x + roi_gray.shape[1] / 2)
+        roy_color_center_y = (int)(start_cord_y + roi_gray.shape[0] / 2)
         cv2.circle(frame2, (roy_color_center_x, roy_color_center_y), 10, blue_color, -1)
 
         roi_gray_bgra = cv2.cvtColor(roi_gray_scaled, cv2.COLOR_GRAY2BGRA)
@@ -161,8 +159,8 @@ while True:
         #print("roi_gray_scaled")
         #print(roi_gray_scaled.shape)
 
-        w_2 = roi_gray_bgra.shape[1] / 2
-        h_2 = roi_gray_bgra.shape[0] / 2
+        w_2 = (int)(roi_gray_bgra.shape[1] / 2)
+        h_2 = (int)(roi_gray_bgra.shape[0] / 2)
 
         if w_2 % 2 != 0:
             w_2 = w_2 - 1
