@@ -65,6 +65,7 @@ y_offset = 160
 
 empty_h = 140
 empty_w = 100
+empty_aspectRatio = empty_w / empty_h
 empty_center_x = 678
 empty_center_y = 182
 print(empty_center_x)
@@ -123,11 +124,21 @@ while True:
             end_cord_x = x + w
             new_h = h + padding * 2
             end_cord_y = start_cord_y + new_h
-            roi_gray = grayFrame2[start_cord_y: end_cord_y, start_cord_x: end_cord_x]  # gray
+            roi_gray = grayFrame2[start_cord_y:end_cord_y, start_cord_x:end_cord_x]  # gray
             # roi_color = frame2[start_cord_y: end_cord_y, start_cord_x: end_cord_x]
             roi_scale = roi_gray.shape[0] / empty_h
-            roi_gray_scaled = cv2.resize(roi_gray, (int(empty_w), int(roi_gray.shape[0] / roi_scale)))
-
+            roi_aspectRatio = roi_gray.shape[1] / roi_gray.shape[0]
+            print("ROI GRAY SHAPE ", roi_gray.shape, "px, aspect ratio ", roi_aspectRatio, " fitting into ratio ", empty_aspectRatio)
+            if roi_aspectRatio <= empty_aspectRatio:
+                # Aspect ratio di viso rilevato più "verticale" di destinazione, fissa larghezza
+                dest_w = int(empty_w)
+                dest_h = int(empty_h / roi_aspectRatio)
+            else:
+                # Aspect ratio di viso rilevato più "orizzontale" di destinazione, fissa altezza
+                dest_w = int(empty_w / roi_aspectRatio)
+                dest_h = int(empty_h)
+            print("Destination size ", dest_w, ",", dest_h, "px")
+            roi_gray_scaled = cv2.resize(roi_gray, (dest_w, dest_h))
             # print(base.shape)
 
             # save image on disk
