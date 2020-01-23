@@ -63,8 +63,8 @@ y_offset = 160
 # empty_center_x = x_offset + empty_width / 2
 # empty_center_y = y_offset + empty_height / 2
 
-empty_h = 150
-empty_w = 110
+empty_h = 140
+empty_w = 100
 empty_center_x = 678
 empty_center_y = 182
 print(empty_center_x)
@@ -97,17 +97,18 @@ while True:
     base = np.zeros((bg_h, bg_w, bg_c), dtype='uint8')
     scale = background.shape[1] / frame.shape[1]
     grayFrame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-
     frame = cv2.cvtColor(frame, cv2.COLOR_BGR2BGRA)
-    frame2 = cv2.resize(frame, (background.shape[1], (int)(background.shape[0] * scale)))
-    grayFrame2 = cv2.cvtColor(frame2, cv2.COLOR_BGR2GRAY)
+    frame_resized = cv2.resize(frame, (background.shape[1], int(background.shape[0] * scale)))
+    grayFrame2 = cv2.cvtColor(frame_resized, cv2.COLOR_BGR2GRAY)
     faces = face_cascade.detectMultiScale(grayFrame2, scaleFactor=1.3, minNeighbors=5, minSize=(50, 50),
                                           flags=cv2.CASCADE_SCALE_IMAGE)
 
     base = cv2.cvtColor(base, cv2.COLOR_BGR2BGRA)
 
-    min_x = int(frame.shape[1] / 3)
+    min_x = int(frame_resized.shape[1] / 3)
     max_x = min_x * 2
+    print(min_x)
+    print(max_x)
 
     array = []
     for (x, y, w, h) in faces:
@@ -116,33 +117,33 @@ while True:
         # Se il viso non si trova nella zona centrale del frame lo scartiamo
         if min_x > x > max_x:
             continue
+        else:
+            start_cord_x = x
+            start_cord_y = y - padding
+            end_cord_x = x + w
+            new_h = h + padding * 2
+            end_cord_y = start_cord_y + new_h
+            roi_gray = grayFrame2[start_cord_y: end_cord_y, start_cord_x: end_cord_x]  # gray
+            # roi_color = frame2[start_cord_y: end_cord_y, start_cord_x: end_cord_x]
+            roi_scale = roi_gray.shape[0] / empty_h
+            roi_gray_scaled = cv2.resize(roi_gray, (int(empty_w), int(roi_gray.shape[0] / roi_scale)))
 
-        start_cord_x = x
-        start_cord_y = y - padding
-        end_cord_x = x + w
-        new_h = h + padding * 2
-        end_cord_y = start_cord_y + new_h
-        roi_gray = grayFrame2[start_cord_y: end_cord_y, start_cord_x: end_cord_x] #gray
-        #roi_color = frame2[start_cord_y: end_cord_y, start_cord_x: end_cord_x]
-        roi_scale = roi_gray.shape[1] / empty_h
-        roi_gray_scaled = cv2.resize(roi_gray, (int(empty_w), int(roi_gray.shape[0] / roi_scale)))
+            # print(base.shape)
 
-        # print(base.shape)
+            # save image on disk
+            # img_item = "my-image.png"
+            # cv2.imwrite(img_item, roi_gray)
 
-        # save image on disk
-        # img_item = "my-image.png"
-        # cv2.imwrite(img_item, roi_gray)
+            cv2.rectangle(frame_resized, (x, y), (x + w, y + h), blue_color, stroke)
+            cv2.rectangle(frame_resized, (start_cord_x, start_cord_y), (end_cord_x, end_cord_y), red_color, stroke)
 
-        cv2.rectangle(frame2, (x, y), (x + w, y + h), blue_color, stroke)
-        cv2.rectangle(frame2, (start_cord_x, start_cord_y), (end_cord_x, end_cord_y), red_color, stroke)
+            roy_color_center_x = int(start_cord_x + roi_gray.shape[1] / 2)
+            roy_color_center_y = int(start_cord_y + roi_gray.shape[0] / 2)
+            cv2.circle(frame_resized, (roy_color_center_x, roy_color_center_y), 10, blue_color, -1)
 
-        roy_color_center_x = (int)(start_cord_x + roi_gray.shape[1] / 2)
-        roy_color_center_y = (int)(start_cord_y + roi_gray.shape[0] / 2)
-        cv2.circle(frame2, (roy_color_center_x, roy_color_center_y), 10, blue_color, -1)
-
-        roi_gray_bgra = cv2.cvtColor(roi_gray_scaled, cv2.COLOR_GRAY2BGRA)
-        array.append(roi_gray_bgra)
-        # cv2.circle(background, (tmp_x, tmp_y), 10, red_color, -1)
+            roi_gray_bgra = cv2.cvtColor(roi_gray_scaled, cv2.COLOR_GRAY2BGRA)
+            array.append(roi_gray_bgra)
+            # cv2.circle(background, (tmp_x, tmp_y), 10, red_color, -1)
 
     print("------------------")
     if len(array) == 0:
@@ -152,6 +153,12 @@ while True:
     else:
         print(len(array))
         roi_gray_bgra = array[0]
+        cv2.imshow("roi_gray_bgra", roi_gray_bgra)
+
+        # Aumento la luminosita
+        value = 150
+        roi_gray_bgra = np.where((255 - roi_gray_bgra) < value, 255, roi_gray_bgra + value)
+        cv2.imshow("grey_new", roi_gray_bgra)
         #print("base_shape")
         #print(base.shape)
         #print("roi_gray")
@@ -159,8 +166,8 @@ while True:
         #print("roi_gray_scaled")
         #print(roi_gray_scaled.shape)
 
-        w_2 = (int)(roi_gray_bgra.shape[1] / 2)
-        h_2 = (int)(roi_gray_bgra.shape[0] / 2)
+        w_2 = int(roi_gray_bgra.shape[1] / 2)
+        h_2 = int(roi_gray_bgra.shape[0] / 2)
 
         if w_2 % 2 != 0:
             w_2 = w_2 - 1
@@ -221,11 +228,12 @@ while True:
         resized_output = cv2.resize(output, (int(output.shape[1] / 2), int(output.shape[0] / 2)))
         cv2.imshow("final", resized_output)
 
+
         #grayOutput = cv2.cvtColor(resized_output, cv2.COLOR_BGRA2GRAY)
         #cv2.imshow('grayOutput', grayOutput)
 
-    resized_frame = cv2.resize(frame2, (int(frame2.shape[1] / 2), int(frame2.shape[0] / 2)))
-    cv2.imshow("resize_frame", resized_frame)
+    frame_resized = cv2.resize(frame_resized, (int(frame_resized.shape[1] / 2), int(frame_resized.shape[0] / 2)))
+    cv2.imshow("resize_frame", frame_resized)
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
 
