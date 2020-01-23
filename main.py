@@ -64,11 +64,11 @@ y_offset = 160
 # empty_center_x = x_offset + empty_width / 2
 # empty_center_y = y_offset + empty_height / 2
 
-empty_h = 140
+empty_h = 138
 empty_w = 100
 empty_aspectRatio = empty_w / empty_h
 empty_center_x = 678
-empty_center_y = 182
+empty_center_y = 195
 print(empty_center_x)
 print(empty_center_y)
 
