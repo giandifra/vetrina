@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+import time
 
 
 def overlay_transparent(background_img, img_to_overlay_t, x, y, overlay_size=None):
@@ -81,12 +82,14 @@ cap = cv2.VideoCapture()
 cap.open(0)
 cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1080)
 cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1920)
-#cap.set(cv2.CAP_PROP_FPS, 5)
+# cap.set(cv2.CAP_PROP_FPS, 5)
 cap.set(cv2.CAP_PROP_AUTOFOCUS, 0)
 focus = 10
 cap.set(28, focus)
 
 print("VideoCapture open with frame ", cap.get(cv2.CAP_PROP_FRAME_WIDTH), "x", cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+global start
+start = None
 
 while True:
 
@@ -148,10 +151,14 @@ while True:
     print("------------------")
     if len(array) == 0:
         print("empty array")
-        final_base = cv2.resize(background_base, (int(background_base.shape[1] / 2), int(background_base.shape[0] / 2)))
-        cv2.imshow("final", final_base)
+        if start is None or time.time() - start > 3:
+            print("maggio di 3 o nullo")
+            final_base = cv2.resize(background_base,
+                                    (int(background_base.shape[1] / 2), int(background_base.shape[0] / 2)))
+            cv2.imshow("final", final_base)
     else:
         print(len(array))
+        start = time.time()
         roi_gray_bgra = array[0]
         cv2.imshow("roi_gray_bgra", roi_gray_bgra)
 
@@ -159,12 +166,12 @@ while True:
         value = 150
         roi_gray_bgra = np.where((255 - roi_gray_bgra) < value, 255, roi_gray_bgra + value)
         cv2.imshow("grey_new", roi_gray_bgra)
-        #print("base_shape")
-        #print(base.shape)
-        #print("roi_gray")
-        #print(roi_gray_scaled.shape)
-        #print("roi_gray_scaled")
-        #print(roi_gray_scaled.shape)
+        # print("base_shape")
+        # print(base.shape)
+        # print("roi_gray")
+        # print(roi_gray_scaled.shape)
+        # print("roi_gray_scaled")
+        # print(roi_gray_scaled.shape)
 
         w_2 = int(roi_gray_bgra.shape[1] / 2)
         h_2 = int(roi_gray_bgra.shape[0] / 2)
@@ -178,7 +185,6 @@ while True:
         print(w_2)
         print("h_2")
         print(h_2)
-
 
         # print(roi_color.shape)
         # print(roy_color_center_x)
@@ -228,9 +234,8 @@ while True:
         resized_output = cv2.resize(output, (int(output.shape[1] / 2), int(output.shape[0] / 2)))
         cv2.imshow("final", resized_output)
 
-
-        #grayOutput = cv2.cvtColor(resized_output, cv2.COLOR_BGRA2GRAY)
-        #cv2.imshow('grayOutput', grayOutput)
+        # grayOutput = cv2.cvtColor(resized_output, cv2.COLOR_BGRA2GRAY)
+        # cv2.imshow('grayOutput', grayOutput)
 
     frame_resized = cv2.resize(frame_resized, (int(frame_resized.shape[1] / 2), int(frame_resized.shape[0] / 2)))
     cv2.imshow("resize_frame", frame_resized)
