@@ -50,8 +50,6 @@ background = cv2.cvtColor(background, cv2.COLOR_BGR2BGRA)
 red_level = cv2.imread("memoria-3-rosso.png", cv2.IMREAD_UNCHANGED)
 bg_h, bg_w, bg_c = background.shape
 print(background.shape)
-# base nera con 4 canali BGRA
-
 
 # posizione in cui inserire il crop del viso
 # x_offset = 1786
@@ -81,20 +79,23 @@ stroke = 2
 
 cap = cv2.VideoCapture(0)
 
+''' SAVERIO (USAVA CAM ESTERNA)
+cap = cv2.VideoCapture()
+cap.open(2 + cv2.CAP_DSHOW)
+cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1080)
+cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1920)
+#cap.set(cv2.CAP_PROP_FPS, 5)
+cap.set(cv2.CAP_PROP_AUTOFOCUS, 0)
+focus = 10
+cap.set(28, focus)
 '''
-h = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
-w = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
-cap.set(cv2.CAP_PROP_BUFFERSIZE, 3)
-
-capture_buffer = np.empty(shape=(int(h), int(w), 4), dtype=np.uint8)
-'''
-
-# cap.set(cv2.CAP_PROP_FPS, 30)
 
 while True:
 
-    # 1280x720
+    # 1280x720 (camera mac GM)
     ret, frame = cap.read()
+
+    # base nera con 4 canali BGRA
     base = np.zeros((bg_h, bg_w, bg_c), dtype='uint8')
     scale = background.shape[1] / frame.shape[1]
     grayFrame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -107,17 +108,26 @@ while True:
 
     base = cv2.cvtColor(base, cv2.COLOR_BGR2BGRA)
 
+    min_x = int(frame.shape[1] / 3)
+    max_x = min_x * 2
+
+    array = []
     for (x, y, w, h) in faces:
         print(x, y, w, h)
+
+        # Se il viso non si trova nella zona centrale del frame lo scartiamo
+        if min_x > x > max_x:
+            continue
+
         start_cord_x = x
         start_cord_y = y - padding
         end_cord_x = x + w
         new_h = h + padding * 2
         end_cord_y = start_cord_y + new_h
-        # roi_gray = grayFrame2[start_cord_y: end_cord_y, start_cord_x: end_cord_x]
-        roi_color = frame2[start_cord_y: end_cord_y, start_cord_x: end_cord_x]
-        roi_scale = roi_color.shape[1] / empty_h
-        roi_color_scaled = cv2.resize(roi_color, (int(empty_w), int(roi_color.shape[0] / roi_scale)))
+        roi_gray = grayFrame2[start_cord_y: end_cord_y, start_cord_x: end_cord_x] #gray
+        #roi_color = frame2[start_cord_y: end_cord_y, start_cord_x: end_cord_x]
+        roi_scale = roi_gray.shape[1] / empty_h
+        roi_gray_scaled = cv2.resize(roi_gray, (int(empty_w), int(roi_gray.shape[0] / roi_scale)))
 
         # print(base.shape)
 
@@ -128,15 +138,31 @@ while True:
         cv2.rectangle(frame2, (x, y), (x + w, y + h), blue_color, stroke)
         cv2.rectangle(frame2, (start_cord_x, start_cord_y), (end_cord_x, end_cord_y), red_color, stroke)
 
-        print("base_shape")
-        print(base.shape)
-        print("roi_color")
-        print(roi_color.shape)
-        print("roi_color_scaled")
-        print(roi_color_scaled.shape)
+        roy_color_center_x = start_cord_x + roi_gray.shape[1] / 2
+        roy_color_center_y = start_cord_y + roi_gray.shape[0] / 2
+        cv2.circle(frame2, (roy_color_center_x, roy_color_center_y), 10, blue_color, -1)
 
-        w_2 = roi_color_scaled.shape[1] / 2
-        h_2 = roi_color_scaled.shape[0] / 2
+        roi_gray_bgra = cv2.cvtColor(roi_gray_scaled, cv2.COLOR_GRAY2BGRA)
+        array.append(roi_gray_bgra)
+        # cv2.circle(background, (tmp_x, tmp_y), 10, red_color, -1)
+
+    print("------------------")
+    if len(array) == 0:
+        print("empty array")
+        final_base = cv2.resize(background_base, (int(background_base.shape[1] / 2), int(background_base.shape[0] / 2)))
+        cv2.imshow("final", final_base)
+    else:
+        print(len(array))
+        roi_gray_bgra = array[0]
+        #print("base_shape")
+        #print(base.shape)
+        #print("roi_gray")
+        #print(roi_gray_scaled.shape)
+        #print("roi_gray_scaled")
+        #print(roi_gray_scaled.shape)
+
+        w_2 = roi_gray_bgra.shape[1] / 2
+        h_2 = roi_gray_bgra.shape[0] / 2
 
         if w_2 % 2 != 0:
             w_2 = w_2 - 1
@@ -148,9 +174,6 @@ while True:
         print("h_2")
         print(h_2)
 
-        roy_color_center_x = start_cord_x + roi_color.shape[1] / 2
-        roy_color_center_y = start_cord_y + roi_color.shape[0] / 2
-        cv2.circle(frame2, (roy_color_center_x, roy_color_center_y), 10, blue_color, -1)
 
         # print(roi_color.shape)
         # print(roy_color_center_x)
@@ -169,45 +192,42 @@ while True:
         print("tmp")
         print(tmp_x)
         print(tmp_y)
+        base[tmp_y:tmp_y + roi_gray_bgra.shape[0], tmp_x:tmp_x + roi_gray_bgra.shape[1]] = roi_gray_bgra
+        base = cv2.cvtColor(base, cv2.COLOR_BGRA2BGR)
+        background_levels = cv2.split(background)
+        background_2_levels = cv2.split(background_2)
+        # cv2.imshow("c0", c[0])
 
-        base[tmp_y:tmp_y + roi_color_scaled.shape[0], tmp_x:tmp_x + roi_color_scaled.shape[1]] = roi_color_scaled
-        # cv2.circle(background, (tmp_x, tmp_y), 10, red_color, -1)
+        # Faccio il merge dei livelli per otteren un immagine BGRA
+        background = cv2.merge(
+            (background_levels[0], background_levels[0], background_levels[0], background_2_levels[3]))
 
-    print("------------------")
+        # Inserisco il background sopra il livello base con il crop del viso
+        alpha_s = background[:, :, 3] / 255.0
+        alpha_l = 1.0 - alpha_s
+        for c in range(0, 3):
+            base[0:bg_h, 0:bg_w, c] = (alpha_s * background[:, :, c] +
+                                       alpha_l * base[0:bg_h, 0:bg_w, c])
 
-    base = cv2.cvtColor(base, cv2.COLOR_BGRA2BGR)
-    background_levels = cv2.split(background)
-    background_2_levels = cv2.split(background_2)
-    # cv2.imshow("c0", c[0])
+        # output = overlay_transparent(base, background, 0, 0, (bg_w, bg_h))
+        output = base
 
-    background = cv2.merge((background_levels[0], background_levels[0], background_levels[0], background_2_levels[3]))
+        # Inserisco il mantello rosso l'immagine comprendente il viso estratto
+        alpha_s = red_level[:, :, 3] / 255.0
+        alpha_l = 1.0 - alpha_s
+        for c in range(0, 3):
+            output[0:bg_h, 0:bg_w, c] = (alpha_s * red_level[:, :, c] +
+                                         alpha_l * output[0:bg_h, 0:bg_w, c])
 
-    alpha_s = background[:, :, 3] / 255.0
-    alpha_l = 1.0 - alpha_s
+        # Resize
+        resized_output = cv2.resize(output, (int(output.shape[1] / 2), int(output.shape[0] / 2)))
+        cv2.imshow("final", resized_output)
 
-    for c in range(0, 3):
-        base[0:bg_h, 0:bg_w, c] = (alpha_s * background[:, :, c] +
-                                   alpha_l * base[0:bg_h, 0:bg_w, c])
+        #grayOutput = cv2.cvtColor(resized_output, cv2.COLOR_BGRA2GRAY)
+        #cv2.imshow('grayOutput', grayOutput)
 
-    #output = overlay_transparent(base, background, 0, 0, (bg_w, bg_h))
-    output = base
-
-    alpha_s = red_level[:, :, 3] / 255.0
-    alpha_l = 1.0 - alpha_s
-
-    for c in range(0, 3):
-        output[0:bg_h, 0:bg_w, c] = (alpha_s * red_level[:, :, c] +
-                                     alpha_l * output[0:bg_h, 0:bg_w, c])
-
-    resized_output = cv2.resize(output, (int(output.shape[1] / 2), int(output.shape[0] / 2)))
     resized_frame = cv2.resize(frame2, (int(frame2.shape[1] / 2), int(frame2.shape[0] / 2)))
-
-    grayOutput = cv2.cvtColor(resized_output, cv2.COLOR_BGRA2GRAY)
-
     cv2.imshow("resize_frame", resized_frame)
-    cv2.imshow("resized_output", resized_output)
-    cv2.imshow('grayOutput', grayOutput)
-
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
 
