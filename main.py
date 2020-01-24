@@ -3,6 +3,21 @@ import numpy as np
 import time
 
 
+def overlay_with_opacity(bg, overlay, opacity):
+    bg_copy = bg.copy()
+    overaly_copy = overlay.copy()
+    bg_h, bg_w, bg_c = bg_copy.shape
+    base = np.zeros((bg_h, bg_w, bg_c), dtype='uint8')
+    print(1 - opacity)
+    cv2.addWeighted(base, opacity, overaly_copy, 1 - opacity, 0, base)
+    alpha_s = base[:, :, 3] / 255.0
+    alpha_l = 1.0 - alpha_s
+    for c in range(0, 3):
+        bg_copy[0:bg_h, 0:bg_w, c] = (alpha_s * base[:, :, c] +
+                                      alpha_l * bg_copy[0:bg_h, 0:bg_w, c])
+    return bg_copy
+
+
 def overlay_transparent(background_img, img_to_overlay_t, x, y, overlay_size=None):
     """
     @brief      Overlays a transparant PNG onto another image using CV2
@@ -96,18 +111,22 @@ while True:
 
     # 1280x720 (camera mac GM)
     ret, frame = cap.read()
-
+    print(frame.shape)
     # base nera con 4 canali BGRA
-    base = np.zeros((bg_h, bg_w, bg_c), dtype='uint8')
+    x = int(frame.shape[1] / 3)
+    black_base = np.zeros(frame.shape, frame.dtype)
+    roi = frame[0:frame.shape[0], x:x + x]
+    black_base[0:frame.shape[0], x:x + x] = roi
+    frame = black_base
+
     scale = background.shape[1] / frame.shape[1]
     grayFrame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     frame = cv2.cvtColor(frame, cv2.COLOR_BGR2BGRA)
     frame_resized = cv2.resize(frame, (background.shape[1], int(background.shape[0] * scale)))
-    grayFrame2 = cv2.cvtColor(frame_resized, cv2.COLOR_BGR2GRAY)
-    faces = face_cascade.detectMultiScale(grayFrame2, scaleFactor=1.3, minNeighbors=5, minSize=(50, 50),
-                                          flags=cv2.CASCADE_SCALE_IMAGE)
 
-    base = cv2.cvtColor(base, cv2.COLOR_BGR2BGRA)
+    grayFrame2 = cv2.cvtColor(frame_resized, cv2.COLOR_BGR2GRAY)
+    faces = face_cascade.detectMultiScale(grayFrame2, scaleFactor=1.5, minNeighbors=5, minSize=(100, 100),
+                                          flags=cv2.CASCADE_SCALE_IMAGE)
 
     min_x = int(frame_resized.shape[1] / 3)
     max_x = min_x * 2
@@ -117,56 +136,68 @@ while True:
     array = []
     for (x, y, w, h) in faces:
         print(x, y, w, h)
-
-        # Se il viso non si trova nella zona centrale del frame lo scartiamo
-        if min_x > x > max_x:
-            continue
+        base = np.zeros((bg_h, bg_w, bg_c), dtype='uint8')
+        base = cv2.cvtColor(base, cv2.COLOR_BGR2BGRA)
+        start_cord_x = x
+        start_cord_y = y - padding
+        end_cord_x = x + w
+        new_h = h + padding * 2
+        end_cord_y = start_cord_y + new_h
+        roi_gray = grayFrame2[start_cord_y:end_cord_y, start_cord_x:end_cord_x]  # gray
+        # roi_color = frame2[start_cord_y: end_cord_y, start_cord_x: end_cord_x]
+        roi_scale = roi_gray.shape[0] / empty_h
+        roi_aspectRatio = roi_gray.shape[1] / roi_gray.shape[0]
+        print("ROI GRAY SHAPE ", roi_gray.shape, "px, aspect ratio ", roi_aspectRatio, " fitting into ratio ",
+              empty_aspectRatio)
+        if roi_aspectRatio <= empty_aspectRatio:
+            # Aspect ratio di viso rilevato più "verticale" di destinazione, fissa larghezza
+            dest_w = int(empty_w)
+            dest_h = int(empty_h / roi_aspectRatio)
         else:
-            start_cord_x = x
-            start_cord_y = y - padding
-            end_cord_x = x + w
-            new_h = h + padding * 2
-            end_cord_y = start_cord_y + new_h
-            roi_gray = grayFrame2[start_cord_y:end_cord_y, start_cord_x:end_cord_x]  # gray
-            # roi_color = frame2[start_cord_y: end_cord_y, start_cord_x: end_cord_x]
-            roi_scale = roi_gray.shape[0] / empty_h
-            roi_aspectRatio = roi_gray.shape[1] / roi_gray.shape[0]
-            print("ROI GRAY SHAPE ", roi_gray.shape, "px, aspect ratio ", roi_aspectRatio, " fitting into ratio ", empty_aspectRatio)
-            if roi_aspectRatio <= empty_aspectRatio:
-                # Aspect ratio di viso rilevato più "verticale" di destinazione, fissa larghezza
-                dest_w = int(empty_w)
-                dest_h = int(empty_h / roi_aspectRatio)
-            else:
-                # Aspect ratio di viso rilevato più "orizzontale" di destinazione, fissa altezza
-                dest_w = int(empty_w / roi_aspectRatio)
-                dest_h = int(empty_h)
-            print("Destination size ", dest_w, ",", dest_h, "px")
-            roi_gray_scaled = cv2.resize(roi_gray, (dest_w, dest_h))
-            # print(base.shape)
+            # Aspect ratio di viso rilevato più "orizzontale" di destinazione, fissa altezza
+            dest_w = int(empty_w / roi_aspectRatio)
+            dest_h = int(empty_h)
+        print("Destination size ", dest_w, ",", dest_h, "px")
+        roi_gray_scaled = cv2.resize(roi_gray, (dest_w, dest_h))
+        # print(base.shape)
 
-            # save image on disk
-            # img_item = "my-image.png"
-            # cv2.imwrite(img_item, roi_gray)
+        # save image on disk
+        # img_item = "my-image.png"
+        # cv2.imwrite(img_item, roi_gray)
 
-            cv2.rectangle(frame_resized, (x, y), (x + w, y + h), blue_color, stroke)
-            cv2.rectangle(frame_resized, (start_cord_x, start_cord_y), (end_cord_x, end_cord_y), red_color, stroke)
+        cv2.rectangle(frame_resized, (x, y), (x + w, y + h), blue_color, stroke)
+        cv2.rectangle(frame_resized, (start_cord_x, start_cord_y), (end_cord_x, end_cord_y), red_color, stroke)
 
-            roy_color_center_x = int(start_cord_x + roi_gray.shape[1] / 2)
-            roy_color_center_y = int(start_cord_y + roi_gray.shape[0] / 2)
-            cv2.circle(frame_resized, (roy_color_center_x, roy_color_center_y), 10, blue_color, -1)
+        roy_color_center_x = int(start_cord_x + roi_gray.shape[1] / 2)
+        roy_color_center_y = int(start_cord_y + roi_gray.shape[0] / 2)
+        cv2.circle(frame_resized, (roy_color_center_x, roy_color_center_y), 10, blue_color, -1)
 
-            roi_gray_bgra = cv2.cvtColor(roi_gray_scaled, cv2.COLOR_GRAY2BGRA)
-            array.append(roi_gray_bgra)
-            # cv2.circle(background, (tmp_x, tmp_y), 10, red_color, -1)
+        roi_gray_bgra = cv2.cvtColor(roi_gray_scaled, cv2.COLOR_GRAY2BGRA)
+        array.append(roi_gray_bgra)
+        # cv2.circle(background, (tmp_x, tmp_y), 10, red_color, -1)
 
     print("------------------")
     if len(array) == 0:
         print("empty array")
-        if start is None or time.time() - start > 3:
+        if start is None or time.time() - start > 4:
             print("maggio di 3 o nullo")
             final_base = cv2.resize(background_base,
                                     (int(background_base.shape[1] / 2), int(background_base.shape[0] / 2)))
             cv2.imshow("final", final_base)
+        else:
+            diff = time.time() - start
+            if diff > 1.5:
+                diff = diff - 1.5 + 0.375
+                opacity = diff / 2.5
+                print("opacity")
+                print(opacity)
+                if opacity <= 1:
+                    if base.shape[2] == 3:
+                        base = cv2.cvtColor(base, cv2.COLOR_BGR2BGRA)
+                    final_base = overlay_with_opacity(base, red_level, opacity)
+                    final_base = cv2.resize(final_base,
+                                            (int(final_base.shape[1] / 2), int(final_base.shape[0] / 2)))
+                    cv2.imshow("final", final_base)
     else:
         print(len(array))
         start = time.time()
@@ -234,7 +265,7 @@ while True:
         # output = overlay_transparent(base, background, 0, 0, (bg_w, bg_h))
         output = base
 
-        # Inserisco il mantello rosso l'immagine comprendente il viso estratto
+        # Inserisco il mantello rosso sopra l'immagine comprendente il viso estratto
         alpha_s = red_level[:, :, 3] / 255.0
         alpha_l = 1.0 - alpha_s
         for c in range(0, 3):
@@ -249,6 +280,8 @@ while True:
         # cv2.imshow('grayOutput', grayOutput)
 
     frame_resized = cv2.resize(frame_resized, (int(frame_resized.shape[1] / 2), int(frame_resized.shape[0] / 2)))
+    print("frame_resized")
+    print(frame_resized.shape)
     cv2.imshow("resize_frame", frame_resized)
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
