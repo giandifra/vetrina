@@ -63,7 +63,7 @@ background = cv2.imread("memoria-3-bucato.png", cv2.IMREAD_UNCHANGED)
 background_base = cv2.imread("memoria-3-base.png", cv2.IMREAD_UNCHANGED)
 background_2 = cv2.imread("memoria-3-bucato-2.png", -1)
 background = cv2.cvtColor(background, cv2.COLOR_BGR2BGRA)
-red_level = cv2.imread("memoria-3-rosso.png", cv2.IMREAD_UNCHANGED)
+red_level = cv2.imread("memoria-3-rosso-nuovo.png", cv2.IMREAD_UNCHANGED)
 bg_h, bg_w, bg_c = background.shape
 print(background.shape)
 
