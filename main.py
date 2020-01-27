@@ -95,7 +95,8 @@ red_color = (0, 0, 255)
 stroke = 2
 
 cap = cv2.VideoCapture()
-cap.open(0)
+#cap.open(0)
+cap.open(0 + cv2.CAP_DSHOW)
 test = cap.get(cv2.CAP_PROP_POS_MSEC)
 ratio = cap.get(cv2.CAP_PROP_POS_AVI_RATIO)
 frame_rate = cap.get(cv2.CAP_PROP_FPS)
@@ -123,8 +124,11 @@ print("Exposure: ", exposure)
 # cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1920)
 # cap.set(cv2.CAP_PROP_FPS, 5)
 cap.set(cv2.CAP_PROP_AUTOFOCUS, 0)
-focus = 10
+# focus = 10
 # cap.set(28, focus)
+# exposure = 0
+# cap.set(cv2.CAP_PROP_EXPOSURE, exposure)
+print("Exposure: ", exposure)
 
 print("VideoCapture open with frame ", cap.get(cv2.CAP_PROP_FRAME_WIDTH), "x", cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
@@ -133,9 +137,18 @@ start = None
 
 while True:
 
+    if not cap.isOpened():
+        print("VideoCapture failed")
+        continue
+
     # 1280x720 (camera mac GM)
     ret, frame = cap.read()
-    print(frame.shape)
+
+    if not ret:
+        print("Frame is empty")
+        continue
+
+    # print(frame.shape)
 
     # base nera con 4 canali BGRA
     x = int(frame.shape[1] / 3)
@@ -154,12 +167,12 @@ while True:
 
     min_x = int(frame.shape[1] / 3)
     max_x = min_x * 2
-    print(min_x)
-    print(max_x)
+    # print(min_x)
+    # print(max_x)
 
     array = []
     for (x, y, w, h) in faces:
-        print(x, y, w, h)
+        # print(x, y, w, h)
 
         start_cord_x = x
         start_cord_y = y - padding
@@ -195,8 +208,8 @@ while True:
                 roi_gray = grayFrame[start_cord_y:end_cord_y, start_cord_x:end_cord_x]  # gray
                 roi_scale = roi_gray.shape[0] / empty_h
                 roi_aspectRatio = roi_gray.shape[1] / roi_gray.shape[0]
-                print("ROI GRAY SHAPE ", roi_gray.shape, "px, aspect ratio ", roi_aspectRatio, " fitting into ratio ",
-                      empty_aspectRatio)
+                # print("ROI GRAY SHAPE ", roi_gray.shape, "px, aspect ratio ", roi_aspectRatio, " fitting into ratio ",
+                # empty_aspectRatio)
                 if roi_aspectRatio <= empty_aspectRatio:
                     # Aspect ratio di viso rilevato più "verticale" di destinazione, fissa larghezza
                     dest_w = int(empty_w)
@@ -205,7 +218,7 @@ while True:
                     # Aspect ratio di viso rilevato più "orizzontale" di destinazione, fissa altezza
                     dest_w = int(empty_w / roi_aspectRatio)
                     dest_h = int(empty_h)
-                print("Destination size ", dest_w, ",", dest_h, "px")
+                # print("Destination size ", dest_w, ",", dest_h, "px")
                 roi_gray_scaled = cv2.resize(roi_gray, (dest_w, dest_h))
                 # print(base.shape)
 
@@ -216,16 +229,16 @@ while True:
                 roi_gray_bgra = cv2.cvtColor(roi_gray_scaled, cv2.COLOR_GRAY2BGRA)
                 array.append(roi_gray_bgra)
                 # cv2.circle(background, (tmp_x, tmp_y), 10, red_color, -1)
-            else:
-                print("jump")
-        else:
-            print("jump")
+            # else:
+            # print("jump")
+        # else:
+        # print("jump")
 
     print("------------------")
     if len(array) == 0:
-        print("empty array")
+        # print("empty array")
         if start is None or time.time() - start > 4:
-            print("maggio di 3 o nullo")
+            # print("maggio di 3 o nullo")
             final_base = cv2.resize(background_base,
                                     (int(background_base.shape[1] / 2), int(background_base.shape[0] / 2)))
             cv2.imshow("final", final_base)
@@ -234,8 +247,8 @@ while True:
             if diff > 1.5:
                 diff = diff - 1.5 + 0.375
                 opacity = diff / 2.5
-                print("opacity")
-                print(opacity)
+                # print("opacity")
+                # print(opacity)
                 if opacity <= 1:
                     if base.shape[2] == 3:
                         base = cv2.cvtColor(base, cv2.COLOR_BGR2BGRA)
@@ -244,7 +257,7 @@ while True:
                                             (int(final_base.shape[1] / 2), int(final_base.shape[0] / 2)))
                     cv2.imshow("final", final_base)
     else:
-        print(len(array))
+        # (len(array))
         start = time.time()
         roi_gray_bgra = array[0]
         cv2.imshow("roi_gray_bgra", roi_gray_bgra)
@@ -275,10 +288,10 @@ while True:
         if h_2 % 2 != 0:
             h_2 = h_2 - 1
 
-        print("w_2")
-        print(w_2)
-        print("h_2")
-        print(h_2)
+        # print("w_2")
+        # print(w_2)
+        # print("h_2")
+        # print(h_2)
 
         # print(roi_color.shape)
         # print(roy_color_center_x)
@@ -294,9 +307,9 @@ while True:
         if tmp_y % 2 != 0:
             tmp_y = tmp_y - 1
 
-        print("tmp")
-        print(tmp_x)
-        print(tmp_y)
+        # print("tmp")
+        # print(tmp_x)
+        # print(tmp_y)
         base[tmp_y:tmp_y + roi_gray_bgra.shape[0], tmp_x:tmp_x + roi_gray_bgra.shape[1]] = roi_gray_bgra
         base = cv2.cvtColor(base, cv2.COLOR_BGRA2BGR)
         background_levels = cv2.split(background)
@@ -325,8 +338,8 @@ while True:
                                          alpha_l * output[0:bg_h, 0:bg_w, c])
 
         # Resize
-        resized_output = cv2.resize(output, (int(output.shape[1] / 2), int(output.shape[0] / 2)))
-        cv2.imshow("final", resized_output)
+        # resized_output = cv2.resize(output, (int(output.shape[1] / 2), int(output.shape[0] / 2)))
+        cv2.imshow("final", output)
 
         # grayOutput = cv2.cvtColor(resized_output, cv2.COLOR_BGRA2GRAY)
         # cv2.imshow('grayOutput', grayOutput)
@@ -338,6 +351,18 @@ while True:
     cv2.imshow("camera_preview", frame)
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
+
+'''
+    if cv2.waitKey(1) & 0xFF == ord('p'):
+        exposure = exposure + 1.0 if exposure < 0.0 else exposure
+        cap.set(cv2.CAP_PROP_EXPOSURE, exposure)
+        print("Exposure: ", exposure)
+
+    if cv2.waitKey(1) & 0xFF == ord('o'):
+        exposure = exposure - 1.0 if exposure > -13.0 else exposure
+        cap.set(cv2.CAP_PROP_EXPOSURE, exposure)
+        print("Exposure: ", exposure)
+'''
 
 cap.release()
 cv2.destroyAllWindows()
