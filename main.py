@@ -58,10 +58,10 @@ def overlay_transparent(background_img, img_to_overlay_t, x, y, overlay_size=Non
     return bg_img
 
 
-face_cascade = cv2.CascadeClassifier('cascades/data/haarcascade_frontalface_alt2.xml')
+face_cascade = cv2.CascadeClassifier('cascades/data/haarcascade_frontalface_alt.xml')
 background = cv2.imread("memoria-3-bucato.png", cv2.IMREAD_UNCHANGED)
 background_base = cv2.imread("memoria-3-base.png", cv2.IMREAD_UNCHANGED)
-background_2 = cv2.imread("memoria-3-bucato-2.png", -1)
+background_2 = cv2.imread("memoria-3-bucato-2.png", cv2.IMREAD_UNCHANGED)
 background = cv2.cvtColor(background, cv2.COLOR_BGR2BGRA)
 red_level = cv2.imread("memoria-3-rosso-nuovo.png", cv2.IMREAD_UNCHANGED)
 bg_h, bg_w, bg_c = background.shape
@@ -96,14 +96,38 @@ stroke = 2
 
 cap = cv2.VideoCapture()
 cap.open(0)
-cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1080)
-cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1920)
+test = cap.get(cv2.CAP_PROP_POS_MSEC)
+ratio = cap.get(cv2.CAP_PROP_POS_AVI_RATIO)
+frame_rate = cap.get(cv2.CAP_PROP_FPS)
+width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
+height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
+brightness = cap.get(cv2.CAP_PROP_BRIGHTNESS)
+contrast = cap.get(cv2.CAP_PROP_CONTRAST)
+saturation = cap.get(cv2.CAP_PROP_SATURATION)
+hue = cap.get(cv2.CAP_PROP_HUE)
+gain = cap.get(cv2.CAP_PROP_GAIN)
+exposure = cap.get(cv2.CAP_PROP_EXPOSURE)
+print("Test: ", test)
+print("Ratio: ", ratio)
+print("Frame Rate: ", frame_rate)
+print("Height: ", height)
+print("Width: ", width)
+print("Brightness: ", brightness)
+print("Contrast: ", contrast)
+print("Saturation: ", saturation)
+print("Hue: ", hue)
+print("Gain: ", gain)
+print("Exposure: ", exposure)
+
+# cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1080)
+# cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1920)
 # cap.set(cv2.CAP_PROP_FPS, 5)
 cap.set(cv2.CAP_PROP_AUTOFOCUS, 0)
 focus = 10
-cap.set(28, focus)
+# cap.set(28, focus)
 
-print("VideoCapture open with frame ", cap.get(cv2.CAP_PROP_FRAME_WIDTH), "x", cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+print("VideoCapture open with frame ", cap.get(cv2.CAP_PROP_FRAME_WIDTH), "x", cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+
 global start
 start = None
 
@@ -112,23 +136,23 @@ while True:
     # 1280x720 (camera mac GM)
     ret, frame = cap.read()
     print(frame.shape)
+
     # base nera con 4 canali BGRA
     x = int(frame.shape[1] / 3)
     black_base = np.zeros(frame.shape, frame.dtype)
     roi = frame[0:frame.shape[0], x:x + x]
     black_base[0:frame.shape[0], x:x + x] = roi
     frame = black_base
-
-    scale = background.shape[1] / frame.shape[1]
+    # scale = background.shape[1] / frame.shape[1]
     grayFrame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     frame = cv2.cvtColor(frame, cv2.COLOR_BGR2BGRA)
-    frame_resized = cv2.resize(frame, (background.shape[1], int(background.shape[0] * scale)))
+    # frame_resized = cv2.resize(frame, (background.shape[1], int(background.shape[0] * scale)))
 
-    grayFrame2 = cv2.cvtColor(frame_resized, cv2.COLOR_BGR2GRAY)
-    faces = face_cascade.detectMultiScale(grayFrame2, scaleFactor=1.5, minNeighbors=5, minSize=(100, 100),
+    # grayFrame2 = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    faces = face_cascade.detectMultiScale(grayFrame, scaleFactor=1.5, minNeighbors=5, minSize=(100, 100),
                                           flags=cv2.CASCADE_SCALE_IMAGE)
 
-    min_x = int(frame_resized.shape[1] / 3)
+    min_x = int(frame.shape[1] / 3)
     max_x = min_x * 2
     print(min_x)
     print(max_x)
@@ -136,45 +160,66 @@ while True:
     array = []
     for (x, y, w, h) in faces:
         print(x, y, w, h)
-        base = np.zeros((bg_h, bg_w, bg_c), dtype='uint8')
-        base = cv2.cvtColor(base, cv2.COLOR_BGR2BGRA)
+
         start_cord_x = x
         start_cord_y = y - padding
         end_cord_x = x + w
         new_h = h + padding * 2
         end_cord_y = start_cord_y + new_h
-        roi_gray = grayFrame2[start_cord_y:end_cord_y, start_cord_x:end_cord_x]  # gray
-        # roi_color = frame2[start_cord_y: end_cord_y, start_cord_x: end_cord_x]
-        roi_scale = roi_gray.shape[0] / empty_h
-        roi_aspectRatio = roi_gray.shape[1] / roi_gray.shape[0]
-        print("ROI GRAY SHAPE ", roi_gray.shape, "px, aspect ratio ", roi_aspectRatio, " fitting into ratio ",
-              empty_aspectRatio)
-        if roi_aspectRatio <= empty_aspectRatio:
-            # Aspect ratio di viso rilevato più "verticale" di destinazione, fissa larghezza
-            dest_w = int(empty_w)
-            dest_h = int(empty_h / roi_aspectRatio)
+
+        faces_count_string = '%d' % len(faces)
+        cv2.putText(frame, faces_count_string, (x, y), 0, 2, 255)
+        # disegno bb del viso
+        cv2.rectangle(frame, (x, y), (x + w, y + h), blue_color, stroke)
+        # disegno bb del viso con padding
+        cv2.rectangle(frame, (start_cord_x, start_cord_y), (end_cord_x, end_cord_y), red_color, stroke)
+
+        # valore del centro del bb sull'asse x
+        roy_color_center_x = int(start_cord_x + (end_cord_x / 2))
+
+        # valore del centro del bb sull'asse y
+        roy_color_center_y = int(start_cord_y + (end_cord_y / 2))
+
+        # disegno un cerchio al centro del bb con padding
+        cv2.circle(frame, (roy_color_center_x, roy_color_center_y), 15, blue_color, -1)
+
+        # controllo se l'altezza o la larghezza sono uguali a 0 e se il loro rapporto sia superiore a 2
+        # in uno di questi casi saltiamo il viso rilevato
+        if w * h != 0 and w / h < 2 and h / w < 2:
+
+            # controllo se l'inizio del bb o la fine ricada nella parte esclusa (il primo terzo e l ultimo terzo del frame)
+            if end_cord_x < max_x and start_cord_x > min_x:
+                base = np.zeros((bg_h, bg_w, bg_c), dtype='uint8')
+                base = cv2.cvtColor(base, cv2.COLOR_BGR2BGRA)
+
+                roi_gray = grayFrame[start_cord_y:end_cord_y, start_cord_x:end_cord_x]  # gray
+                roi_scale = roi_gray.shape[0] / empty_h
+                roi_aspectRatio = roi_gray.shape[1] / roi_gray.shape[0]
+                print("ROI GRAY SHAPE ", roi_gray.shape, "px, aspect ratio ", roi_aspectRatio, " fitting into ratio ",
+                      empty_aspectRatio)
+                if roi_aspectRatio <= empty_aspectRatio:
+                    # Aspect ratio di viso rilevato più "verticale" di destinazione, fissa larghezza
+                    dest_w = int(empty_w)
+                    dest_h = int(empty_h / roi_aspectRatio)
+                else:
+                    # Aspect ratio di viso rilevato più "orizzontale" di destinazione, fissa altezza
+                    dest_w = int(empty_w / roi_aspectRatio)
+                    dest_h = int(empty_h)
+                print("Destination size ", dest_w, ",", dest_h, "px")
+                roi_gray_scaled = cv2.resize(roi_gray, (dest_w, dest_h))
+                # print(base.shape)
+
+                # save image on disk
+                # img_item = "my-image.png"
+                # cv2.imwrite(img_item, roi_gray)
+
+                roi_gray_bgra = cv2.cvtColor(roi_gray_scaled, cv2.COLOR_GRAY2BGRA)
+                array.append(roi_gray_bgra)
+                # cv2.circle(background, (tmp_x, tmp_y), 10, red_color, -1)
+            else:
+                print("jump")
         else:
-            # Aspect ratio di viso rilevato più "orizzontale" di destinazione, fissa altezza
-            dest_w = int(empty_w / roi_aspectRatio)
-            dest_h = int(empty_h)
-        print("Destination size ", dest_w, ",", dest_h, "px")
-        roi_gray_scaled = cv2.resize(roi_gray, (dest_w, dest_h))
-        # print(base.shape)
-
-        # save image on disk
-        # img_item = "my-image.png"
-        # cv2.imwrite(img_item, roi_gray)
-
-        cv2.rectangle(frame_resized, (x, y), (x + w, y + h), blue_color, stroke)
-        cv2.rectangle(frame_resized, (start_cord_x, start_cord_y), (end_cord_x, end_cord_y), red_color, stroke)
-
-        roy_color_center_x = int(start_cord_x + roi_gray.shape[1] / 2)
-        roy_color_center_y = int(start_cord_y + roi_gray.shape[0] / 2)
-        cv2.circle(frame_resized, (roy_color_center_x, roy_color_center_y), 10, blue_color, -1)
-
-        roi_gray_bgra = cv2.cvtColor(roi_gray_scaled, cv2.COLOR_GRAY2BGRA)
-        array.append(roi_gray_bgra)
-        # cv2.circle(background, (tmp_x, tmp_y), 10, red_color, -1)
+            print("jump")
 
     print("------------------")
     if len(array) == 0:
@@ -205,9 +250,16 @@ while True:
         cv2.imshow("roi_gray_bgra", roi_gray_bgra)
 
         # Aumento la luminosita
-        value = 150
-        roi_gray_bgra = np.where((255 - roi_gray_bgra) < value, 255, roi_gray_bgra + value)
-        cv2.imshow("grey_new", roi_gray_bgra)
+        # value = 150
+        # roi_gray_bgra = np.where((255 - roi_gray_bgra) < value, 255, roi_gray_bgra + value)
+        # cv2.imshow("grey_new", roi_gray_bgra)
+
+        alpha = 1.5  # Contrast control (1.0-3.0)
+        beta = 70  # Brightness control (0-100)
+
+        roi_gray_bgra = cv2.convertScaleAbs(roi_gray_bgra, alpha=alpha)
+        cv2.imshow("grey_new_contrast", roi_gray_bgra)
+
         # print("base_shape")
         # print(base.shape)
         # print("roi_gray")
@@ -279,10 +331,11 @@ while True:
         # grayOutput = cv2.cvtColor(resized_output, cv2.COLOR_BGRA2GRAY)
         # cv2.imshow('grayOutput', grayOutput)
 
-    frame_resized = cv2.resize(frame_resized, (int(frame_resized.shape[1] / 2), int(frame_resized.shape[0] / 2)))
-    print("frame_resized")
-    print(frame_resized.shape)
-    cv2.imshow("resize_frame", frame_resized)
+    # frame_resized = cv2.resize(frame, (int(frame.shape[1] / 2), int(frame.shape[0] / 2)))
+    # print("frame_resized")
+    # print(frame_resized.shape)
+    # cv2.imshow("resize_frame", frame_resized)
+    cv2.imshow("camera_preview", frame)
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
 
