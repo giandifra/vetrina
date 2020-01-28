@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 import time
+from PIL import ImageFont, ImageDraw, Image
 
 
 def overlay_with_opacity(bg, overlay, opacity):
@@ -58,6 +59,99 @@ def overlay_transparent(background_img, img_to_overlay_t, x, y, overlay_size=Non
     return bg_img
 
 
+def readCounter():
+    try:
+        f = open('counter.txt', 'r')
+        s = f.readline()
+        i = int(s.strip())
+        return i
+    except IOError as err:
+        print("I/O error: {0}".format(err))
+        return 0
+    except ValueError:
+        print("Could not convert data to an integer.")
+    except:
+        print("Unexpected error:")
+
+
+def writeNumberOnFrame(src):
+    try:
+        value = readCounter()
+        value += 1000000
+        value_string = str(value)
+        final_string = value_string[1:]
+
+        # org
+        org = (empty_center_x + 15, empty_center_y + 230)
+
+        # fontScale
+        fontScale = 0.5
+
+        # Blue color in BGR
+        color = (0, 0, 0)
+
+        # Line thickness of 2 px
+        thickness = 2
+
+        # Using cv2.putText() method
+        # cv2.putText(src, final_string, org, font,
+        #           fontScale, color, thickness, cv2.LINE_AA)
+
+        cv2_im_rgb = cv2.cvtColor(src, cv2.COLOR_BGRA2RGB)
+
+        # Pass the image to PIL
+        pil_im = Image.fromarray(cv2_im_rgb)
+
+        draw = ImageDraw.Draw(pil_im)
+
+        # Draw the text
+        draw.text(org, final_string, font=type_writer_font, fill=color, stroke_width=0)
+
+        cv2_im_processed = cv2.cvtColor(np.array(pil_im), cv2.COLOR_RGB2BGRA)
+        return cv2_im_processed
+    except:
+        print("errore putText contatore")
+
+
+'''
+def writeCount(value):
+    global f
+    try:
+        f = open("counter.txt")
+        f.write(str(value))
+    except:
+        print("Something went wrong when writing to the file")
+    finally:
+        f.close()
+'''
+
+
+def updateCounter():
+    global f
+    filename = "counter.txt"
+    try:
+        f = open(filename, 'r+')
+        s = f.readline()
+        i = 0
+        if len(s) > 0:
+            i = int(s)
+        i = i + 1
+        count_string = str(i)
+        f.seek(0)
+        f.truncate()
+        f.write(count_string)
+        return count_string
+    except IOError as err:
+        print("I/O error: {0}".format(err))
+    except ValueError:
+        print("Could not convert data to an integer.")
+    except:
+        print("Something went wrong when writing to the file")
+    finally:
+        f.close()
+
+
+type_writer_font = ImageFont.truetype("veteran_typewriter.ttf", 18)
 cv2.namedWindow("final", cv2.WND_PROP_FULLSCREEN)
 cv2.setWindowProperty("final", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
 
@@ -68,8 +162,8 @@ background_2 = cv2.imread("memoria-3-bucato-2.png", cv2.IMREAD_UNCHANGED)
 background = cv2.cvtColor(background, cv2.COLOR_BGR2BGRA)
 red_level = cv2.imread("memoria-3-rosso-nuovo.png", cv2.IMREAD_UNCHANGED)
 bg_h, bg_w, bg_c = background.shape
-print('background', background.shape)
-print('background_base', background_base.shape)
+# print('background', background.shape)
+# print('background_base', background_base.shape)
 
 # posizione in cui inserire il crop del viso
 # x_offset = 1786
@@ -88,8 +182,8 @@ empty_w = 110
 empty_aspectRatio = empty_w / empty_h
 empty_center_x = 675
 empty_center_y = 187
-# print('empty_center_x',empty_center_x)
-# print('empty_center_y',empty_center_y)
+print('empty_center_x',empty_center_x)
+print('empty_center_y',empty_center_y)
 
 
 # B G R
@@ -98,8 +192,8 @@ red_color = (0, 0, 255)
 stroke = 2
 
 cap = cv2.VideoCapture()
-# cap.open(0)
-cap.open(0 + cv2.CAP_DSHOW)
+cap.open(0)
+# cap.open(0 + cv2.CAP_DSHOW)
 test = cap.get(cv2.CAP_PROP_POS_MSEC)
 ratio = cap.get(cv2.CAP_PROP_POS_AVI_RATIO)
 frame_rate = cap.get(cv2.CAP_PROP_FPS)
@@ -186,21 +280,21 @@ while True:
         new_h = h + padding_top + padding_bottom
         end_cord_y = start_cord_y + new_h
 
-        faces_count_string = '%d' % len(faces)
-        cv2.putText(frame, faces_count_string, (x, y), 0, 2, 255)
+        # faces_count_string = '%d' % len(faces)
+        # cv2.putText(frame, faces_count_string, (x, y), 0, 2, 255)
         # disegno bb del viso
-        cv2.rectangle(frame, (x, y), (x + w, y + h), blue_color, stroke)
+        # cv2.rectangle(frame, (x, y), (x + w, y + h), blue_color, stroke)
         # disegno bb del viso con padding
-        cv2.rectangle(frame, (start_cord_x, start_cord_y), (end_cord_x, end_cord_y), red_color, stroke)
+        # cv2.rectangle(frame, (start_cord_x, start_cord_y), (end_cord_x, end_cord_y), red_color, stroke)
 
         # valore del centro del bb sull'asse x
-        roy_color_center_x = int(start_cord_x + (end_cord_x / 2))
+        # roy_color_center_x = int(start_cord_x + (end_cord_x / 2))
 
         # valore del centro del bb sull'asse y
-        roy_color_center_y = int(start_cord_y + (end_cord_y / 2))
+        # roy_color_center_y = int(start_cord_y + (end_cord_y / 2))
 
         # disegno un cerchio al centro del bb con padding
-        cv2.circle(frame, (roy_color_center_x, roy_color_center_y), 15, blue_color, -1)
+        # cv2.circle(frame, (roy_color_center_x, roy_color_center_y), 15, blue_color, -1)
 
         # controllo se l'altezza o la larghezza sono uguali a 0 e se il loro rapporto sia superiore a 2
         # in uno di questi casi saltiamo il viso rilevato
@@ -217,8 +311,8 @@ while True:
                 if roi_gray.shape[0] * roi_gray.shape[1] != 0:
                     # roi_scale = roi_gray.shape[0] / empty_h
                     roi_aspectRatio = roi_gray.shape[1] / roi_gray.shape[0]
-                    print("ROI GRAY SHAPE ", roi_gray.shape, "px, aspect ratio ", roi_aspectRatio,
-                          " fitting intoratio ", empty_aspectRatio)
+                    # print("ROI GRAY SHAPE ", roi_gray.shape, "px, aspect ratio ", roi_aspectRatio,
+                    #      " fitting intoratio ", empty_aspectRatio)
                     # if roi_aspectRatio <= empty_aspectRatio:
                     # Aspect ratio di viso rilevato più "verticale" di destinazione, fissa larghezza
                     #   dest_w = int(empty_w)
@@ -250,6 +344,17 @@ while True:
             # final_base = cv2.resize(background_base,
             #                      (int(background_base.shape[1] / 2), int(background_base.shape[0] / 2)))
             cv2.imshow("final", background_base)
+
+            # se non è nullo quindi sono passati i 4 secondi
+            # aggiorno il contatore
+            if start is not None:
+                try:
+                    updateCounter()
+                except:
+                    print("qualcosa non va !!!!!")
+
+            start = None
+
         else:
             diff = time.time() - start
             if diff > 1.5:
@@ -263,6 +368,9 @@ while True:
                     final_base = overlay_with_opacity(base, red_level, opacity)
                     # final_base = cv2.resize(final_base,
                     #                       (int(final_base.shape[1] / 2), int(final_base.shape[0] / 2)))
+
+                    final_base = writeNumberOnFrame(final_base)
+
                     cv2.imshow("final", final_base)
     else:
         # (len(array))
@@ -346,6 +454,8 @@ while True:
             output[0:bg_h, 0:bg_w, c] = (alpha_s * red_level[:, :, c] +
                                          alpha_l * output[0:bg_h, 0:bg_w, c])
 
+        output = writeNumberOnFrame(output)
+
         # Resize
         # resized_output = cv2.resize(output, (int(output.shape[1] / 2), int(output.shape[0] / 2)))
         cv2.imshow("final", output)
@@ -360,19 +470,6 @@ while True:
     # cv2.imshow("camera_preview", frame)
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
-'''
-    if cv2.waitKey(1) & 0xFF == ord('e'):
-        print('more Exposure')
-        exposure = exposure + 1 if exposure < 0 else exposure
-        cap.set(cv2.CAP_PROP_EXPOSURE, exposure)
-        print("Exposure: ", exposure)
-
-    if cv2.waitKey(1) & 0xFF == ord('w'):
-        print('less Exposure')
-        exposure = exposure - 1 if exposure > -13 else exposure
-        cap.set(cv2.CAP_PROP_EXPOSURE, exposure)
-        print("Exposure: ", exposure)
-'''
 
 cap.release()
 cv2.destroyAllWindows()
